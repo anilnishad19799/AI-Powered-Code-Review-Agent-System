@@ -1,27 +1,31 @@
-"""
-Why this exists:
-GitHub expects a webhook response within 10 seconds.
-A full 4-agent review takes 30-60 seconds.
-Solution: Immediately return 202 Accepted, run review in background via ARQ + Redis.
-"""
 from arq import ArqRedis
-from app.graph.builder import review_graph
-from app.graph.state import GraphState
 from app.core.config import get_settings
 from app.core.logger import logger
 
 settings = get_settings()
 
 
-async def run_pr_review(ctx: dict, pr_number: int) -> dict:
-    """
-    ARQ worker function — runs inside Redis job queue.
-    Called by webhook handler, not directly by FastAPI.
-    """
-    logger.info(f"[worker] Starting review job for PR #{pr_number}")
+async def run_pr_review(ctx: dict, pr_number: int, repo_full_name: str = None) -> dict:
+
+    # ── Debug: print what settings worker actually loaded ──────────────────
+    logger.info(f"[worker] Settings check:")
+    logger.info(f"         GITHUB_REPO_OWNER = {settings.github_repo_owner}")
+    logger.info(f"         GITHUB_REPO_NAME  = {settings.github_repo_name}")
+    logger.info(f"         repo_full_name arg = {repo_full_name}")
+
+    # ── Use repo from webhook payload, fall back to .env ──────────────────
+    if not repo_full_name:
+        repo_full_name = f"{settings.github_repo_owner}/{settings.github_repo_name}"
+
+    logger.info(f"[worker] Final repo target: {repo_full_name}")
+    logger.info(f"[worker] Starting review | PR=#{pr_number}")
+
+    from app.graph.builder import review_graph
+    from app.graph.state import GraphState
 
     initial_state: GraphState = {
         "pr_number": pr_number,
+        "repo_full_name": repo_full_name,
         "pr_metadata": None,
         "pr_files": None,
         "pr_diff_text": None,
@@ -35,11 +39,11 @@ async def run_pr_review(ctx: dict, pr_number: int) -> dict:
 
     try:
         final_state = await review_graph.ainvoke(initial_state)
-        logger.info(f"[worker] Review completed for PR #{pr_number}")
+        logger.info(f"[worker] ✅ Review completed | PR=#{pr_number}")
         return {"status": "completed", "pr_number": pr_number}
     except Exception as e:
-        logger.error(f"[worker] Review failed for PR #{pr_number}: {e}")
-        return {"status": "failed", "pr_number": pr_number, "error": str(e)}
+        logger.error(f"[worker] ❌ Review failed | PR=#{pr_number} | error={e}")
+        raise  # re-raise so ARQ shows full traceback
 
 
 # ARQ worker settings

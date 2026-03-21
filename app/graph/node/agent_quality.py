@@ -1,13 +1,13 @@
 from app.graph.state import GraphState
-from app.services.llm.claude import ClaudeService
+from app.services.llm.openai import OpenAIService
 from app.models.schemas import QualityReview
 from app.prompts.agent_prompts import QUALITY_AGENT_PROMPT
 from app.core.logger import logger
 
 
-async def agent_quality_node(state: GraphState) -> GraphState:
+async def agent_quality_node(state: GraphState) -> dict:
     logger.info("[agent_quality] Starting code quality review")
-    llm = ClaudeService()
+    llm = OpenAIService()
 
     result = await llm.complete_json(
         system_prompt=QUALITY_AGENT_PROMPT,
@@ -16,4 +16,6 @@ async def agent_quality_node(state: GraphState) -> GraphState:
 
     review = QualityReview(**result)
     logger.info(f"[agent_quality] Score={review.score}/10 | Issues={len(review.issues)}")
-    return {**state, "quality_review": review}
+
+    # ✅ Return ONLY what this agent owns — not {**state}
+    return {"quality_review": review}
