@@ -1,13 +1,13 @@
 from app.graph.state import GraphState
-from app.services.llm.claude import ClaudeService
+from app.services.llm.openai import OpenAIService
 from app.models.schemas import PerformanceReview
 from app.prompts.agent_prompts import PERFORMANCE_AGENT_PROMPT
 from app.core.logger import logger
 
 
-async def agent_performance_node(state: GraphState) -> GraphState:
+async def agent_performance_node(state: GraphState) -> dict:
     logger.info("[agent_performance] Starting performance review")
-    llm = ClaudeService()
+    llm = OpenAIService()
 
     result = await llm.complete_json(
         system_prompt=PERFORMANCE_AGENT_PROMPT,
@@ -16,4 +16,6 @@ async def agent_performance_node(state: GraphState) -> GraphState:
 
     review = PerformanceReview(**result)
     logger.info(f"[agent_performance] Score={review.score}/10 | Issues={len(review.improvements)}")
-    return {**state, "performance_review": review}
+
+    # ✅ Return ONLY what this agent owns
+    return {"performance_review": review}

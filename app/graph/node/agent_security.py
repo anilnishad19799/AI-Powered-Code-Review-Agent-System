@@ -1,13 +1,13 @@
 from app.graph.state import GraphState
-from app.services.llm.claude import ClaudeService
+from app.services.llm.openai import OpenAIService
 from app.models.schemas import SecurityReview
 from app.prompts.agent_prompts import SECURITY_AGENT_PROMPT
 from app.core.logger import logger
 
 
-async def agent_security_node(state: GraphState) -> GraphState:
+async def agent_security_node(state: GraphState) -> dict:
     logger.info("[agent_security] Starting security review")
-    llm = ClaudeService()
+    llm = OpenAIService()
 
     result = await llm.complete_json(
         system_prompt=SECURITY_AGENT_PROMPT,
@@ -16,4 +16,6 @@ async def agent_security_node(state: GraphState) -> GraphState:
 
     review = SecurityReview(**result)
     logger.info(f"[agent_security] Score={review.score}/10 | Vulns={len(review.vulnerabilities)}")
-    return {**state, "security_review": review}
+
+    # ✅ Return ONLY what this agent owns
+    return {"security_review": review}

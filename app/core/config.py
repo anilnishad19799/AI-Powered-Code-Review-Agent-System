@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
     # ── OpenAI (optional — for future use) ────────────
     openai_api_key: str = Field(default="", env="OPENAI_API_KEY")
-    openai_model: str = Field(default="gpt-4o", env="OPENAI_MODEL")
+    openai_model: str = Field(default="gpt-4o-mini", env="OPENAI_MODEL")
 
     # ── GitHub ─────────────────────────────────────────
     github_token: str = Field(..., env="GITHUB_TOKEN")

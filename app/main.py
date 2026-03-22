@@ -17,7 +17,7 @@ async def lifespan(app: FastAPI):
     setup_logger()
     logger.info("🚀 PR Review Agent starting")
     logger.info(f"   Environment : {settings.app_env}")
-    logger.info(f"   Model       : {settings.anthropic_model}")
+    logger.info(f"   Model       : {settings.openai_model}")
     yield
     logger.info("🛑 PR Review Agent shutting down")
 
@@ -42,5 +42,5 @@ async def health():
     return {
         "status": "healthy",
         "env": settings.app_env,
-        "model": settings.openai_api_key,
+        "model": settings.openai_model,
     }
